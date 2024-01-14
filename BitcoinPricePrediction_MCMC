@@ -4,20 +4,26 @@ install.packages('mgcv')
 install.packages('tidybayes')
 install.packages("dplyr")
 install.packages("ggplot2")
+
 #load libraries
 library(brms)
 library(mgcv)
 library(tidybayes)
 library(ggplot2)
 library(dplyr)
+
 #set working directory
 setwd("~YourWorkingDirectory")
+
 #Read your data
 df <- read.csv("BTC.csv", header = TRUE)
+
 df$Date <- as.Date(df$Date)
 df <- df[order(df$Date), ]
+
 # Define and fit the Bayesian model with MCMC sampler
 model <- brm(Close ~ Date, data = df, family = gaussian(), chains = 4, iter = 100000)
+
 # Summarize and check the model
 summary(model)
 
