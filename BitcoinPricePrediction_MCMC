@@ -1,0 +1,50 @@
+#Install neccessary packages
+install.packages('brms')
+install.packages('mgcv')
+install.packages('tidybayes')
+install.packages("dplyr")
+install.packages("ggplot2")
+#load libraries
+library(brms)
+library(mgcv)
+library(tidybayes)
+library(ggplot2)
+library(dplyr)
+#set working directory
+setwd("~YourWorkingDirectory")
+#Read your data
+df <- read.csv("BTC.csv", header = TRUE)
+df$Date <- as.Date(df$Date)
+df <- df[order(df$Date), ]
+# Define and fit the Bayesian model with MCMC sampler
+model <- brm(Close ~ Date, data = df, family = gaussian(), chains = 4, iter = 100000)
+# Summarize and check the model
+summary(model)
+
+# Ensure 'Date' is numeric for the prediction
+df$Date <- as.numeric(as.Date(df$Date))
+
+# Obtain the distribution of predicted values
+predicted_draws <- add_predicted_draws(model, newdata = df)
+
+# Convert 'Date' back to Date object for plotting
+predicted_draws$Date <- as.Date(predicted_draws$Date, origin = "1970-01-01")
+
+# Now try calculating the credible intervals
+predicted_summary <- predicted_draws %>%
+  group_by(Date) %>%
+  summarise(
+    .lower = quantile(.prediction, probs = 0.025),
+    .upper = quantile(.prediction, probs = 0.975),
+    .prediction = mean(.prediction)
+  )
+
+# Plotting with ggplot2 using the calculated intervals
+ggplot() +
+  geom_line(data = df, aes(x = as.Date(Date, origin = "1970-01-01"), y = Close), color = "blue") +
+  geom_ribbon(data = predicted_summary, aes(x = as.Date(Date, origin = "1970-01-01"), ymin = .lower, ymax = .upper), alpha = 0.2, fill = "green") +
+  geom_line(data = predicted_summary, aes(x = as.Date(Date, origin = "1970-01-01"), y = .prediction), color = "red", alpha = 0.1) +
+  labs(title = "Bitcoin Close Price: Observed vs Predicted",
+       x = "Date",
+       y = "Price") +
+  theme_minimal()
